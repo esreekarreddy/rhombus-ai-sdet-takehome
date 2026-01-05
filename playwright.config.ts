@@ -8,7 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 export default defineConfig({
   // Test directory patterns
   testDir: ".",
-  testMatch: ["ui-tests/**/*.spec.ts", "api-tests/**/*.spec.ts"],
+  testMatch: ["ui-tests/**/*.spec.ts", "api-tests/**/*.spec.ts", "data-validation/**/*.spec.ts"],
 
   // Run tests in parallel
   fullyParallel: true,
@@ -42,6 +42,12 @@ export default defineConfig({
 
   // Configure projects for cross-browser testing
   projects: [
+    // Data validation tests (no browser needed, runs first)
+    {
+      name: "data-validation",
+      testMatch: /data-validation\/.*\.spec\.ts/,
+    },
+
     // Setup project for authentication
     {
       name: "setup",

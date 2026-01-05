@@ -1,21 +1,19 @@
 # Rhombus AI – SDET Take-Home Exercise
 
-Automated test suite for [Rhombus AI](https://rhombusai.com) using Playwright with TypeScript.
+Automated test suite for [Rhombus AI](https://rhombusai.com) using Playwright with TypeScript and Python.
 
 ## 📋 Quick Start
 
 ```bash
-# 1. Install dependencies
+# Install dependencies
 npm install
-
-# 2. Install browsers (Chromium, Firefox, WebKit)
 npx playwright install
 
-# 3. Configure credentials
+# Configure credentials
 cp .env.example .env
 # Edit .env with your Rhombus AI credentials
 
-# 4. Run all tests
+# Run tests
 npm test
 ```
 
@@ -25,32 +23,28 @@ npm test
 
 ## 🧪 Running Tests
 
-| Command               | Description                  |
-| --------------------- | ---------------------------- |
-| `npm test`            | Run all tests (all browsers) |
-| `npm run test:ui`     | UI end-to-end tests only     |
-| `npm run test:api`    | API/network tests only       |
-| `npm run test:smoke`  | Smoke tests only (fast)      |
-| `npm run test:headed` | Run with visible browser     |
-| `npm run test:debug`  | Debug mode (step through)    |
-| `npm run report`      | Open HTML test report        |
-
-### Run Specific Browser
-
-```bash
-npx playwright test --project=chromium
-npx playwright test --project=firefox
-npx playwright test --project=webkit
-```
+| Command               | Description               |
+| --------------------- | ------------------------- |
+| `npm test`            | Run all tests             |
+| `npm run test:ui`     | UI end-to-end tests only  |
+| `npm run test:smoke`  | Smoke tests only (fast)   |
+| `npm run test:headed` | Run with visible browser  |
+| `npm run test:debug`  | Debug mode (step through) |
+| `npm run report`      | Open HTML test report     |
 
 ---
 
-## 🔬 Data Validation
+## 🔬 Data Validation (Python)
 
 ```bash
 cd data-validation
 pip install -r requirements.txt
-python validate_output.py --input ../assets/messy.csv --output output.csv
+
+# Validate cleaned output
+python validator.py ../test-results/downloads/cleaned_data.csv
+
+# Run pytest suite
+pytest test_validation.py -v
 ```
 
 ---
@@ -58,97 +52,95 @@ python validate_output.py --input ../assets/messy.csv --output output.csv
 ## 📁 Project Structure
 
 ```
-├── ui-tests/           # Playwright UI E2E tests
-│   ├── pages/          # Page Object Model
-│   └── tests/          # Test specs
-├── api-tests/          # API/network-level tests
-├── data-validation/    # Python data validation scripts
-├── assets/             # Test data (messy.csv)
-├── test-strategy.md    # Test strategy & flaky test analysis
-└── ci-design.md        # CI/CD pipeline design
+├── ui-tests/               # Playwright UI tests (Part 2)
+│   ├── pages/              # Page Object Model
+│   │   ├── BasePage.ts
+│   │   ├── LoginPage.ts
+│   │   ├── DashboardPage.ts
+│   │   └── CanvasPage.ts
+│   └── tests/
+│       └── manual-transformation-flow.spec.ts
+├── api-tests/              # API tests (Part 3) - Coming soon
+├── data-validation/        # Python validation (Part 4)
+│   ├── validator.py
+│   └── test_validation.py
+├── assets/
+│   └── messy.csv           # Test input data (25 rows)
+├── test-results/
+│   ├── downloads/          # Output CSV files
+│   └── screenshots/        # Step-by-step screenshots
+├── test-strategy.md        # Test strategy (Part 1)
+└── ci-design.md            # CI/CD design (Part 5)
 ```
 
 ---
 
-## 📚 Documentation
+## 🔄 Transformation Pipeline
 
-| Document                               | Description                                           |
-| -------------------------------------- | ----------------------------------------------------- |
-| [test-strategy.md](./test-strategy.md) | Test strategy, risk analysis, and flaky test handling |
-| [ci-design.md](./ci-design.md)         | CI/CD pipeline design with GitHub Actions             |
+| Step | Transformation    | Configuration            |
+| ---- | ----------------- | ------------------------ |
+| 1    | Data Input        | Upload messy.csv         |
+| 2    | Text Case         | status → lowercase       |
+| 3    | Impute            | Fill NULL in age, salary |
+| 4    | Remove Duplicates | All columns              |
+| 5    | Sort Data         | By name (ascending)      |
+| 6    | Download          | Export cleaned_data.csv  |
 
----
-
-## ❌ What's NOT Automated (By Design)
-
-| Area                            | Reason                                                        |
-| ------------------------------- | ------------------------------------------------------------- |
-| AI-generated content validation | Non-deterministic outputs; we validate structure, not content |
-| Visual regression testing       | Low ROI for a data-focused application                        |
-| Performance/load testing        | Requires production-like infrastructure                       |
-| Mobile responsiveness           | Desktop-first application based on user personas              |
-
-These are intentional trade-offs prioritizing **test reliability** and **maintenance cost** over comprehensive but fragile coverage.
+**Input:** 25 rows with NULL values, mixed case, 1 duplicate  
+**Output:** 24 rows, cleaned and sorted
 
 ---
 
-## 🎥 Demo Video
+## 🎬 Demo Video
 
-[📹 Watch Demo](#) _(Coming Soon)_
-
-Covers:
-
-- UI test walkthrough
-- API test explanation
-- Data validation demonstration
-- Design decisions
+> **Link:** [Coming soon - will be added upon final submission]
 
 ---
 
-## 🔧 Alternative Setup
+## 🚧 What I Chose NOT to Test (Yet)
 
-If you prefer the interactive Playwright setup wizard:
+1. **AI Pipeline Flow** – Chose Option B (Manual Transformation) for deterministic, reliable tests
+2. **Visual Regression** – Low ROI for a data-heavy application; functionality > appearance
+3. **Performance Testing** – Requires production-like infrastructure; functional correctness is higher priority
+4. **Exact AI Output Validation** – AI outputs are probabilistic; testing structure not exact values
+
+---
+
+## 📊 Test Reports
 
 ```bash
-npm init playwright@latest
+npm run report
 ```
 
-This project uses a manual setup for more control over configuration.
+Reports include:
+
+- HTML report with test results
+- Attached screenshots for each transformation step
+- Video recordings on failure
+- Trace files for debugging
 
 ---
 
 ## ⚙️ Configuration
 
-### Environment Variables
-
-Create `.env` from the template:
-
 ```bash
 cp .env.example .env
 ```
 
-Required variables:
+Required:
 
 - `RHOMBUS_EMAIL` - Your Rhombus AI account email
 - `RHOMBUS_PASSWORD` - Your Rhombus AI account password
 
 ---
 
-## 📊 Test Reports
+## 📚 Documentation
 
-After running tests:
-
-```bash
-npm run report
-```
-
-Reports are saved to `playwright-report/` with:
-
-- HTML report
-- Screenshots on failure
-- Video recordings on failure
-- Trace files for debugging
+| Document                               | Description                   |
+| -------------------------------------- | ----------------------------- |
+| [test-strategy.md](./test-strategy.md) | Test strategy & risk analysis |
+| [ci-design.md](./ci-design.md)         | CI/CD pipeline design         |
 
 ---
 
-**Built with [Playwright](https://playwright.dev) • TypeScript • Python**
+**Built with [Playwright](https://playwright.dev) • TypeScript • Python • Pandas**

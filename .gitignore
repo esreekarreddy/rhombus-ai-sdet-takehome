@@ -1,29 +1,26 @@
-# Node modules
+# Dependencies
 node_modules/
 
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*.local
 !.env.example
 
-# Authentication state (session storage)
+# Authentication state
 .auth/
 
-# Playwright
+# Playwright cache
 playwright-report/
-test-results/
 playwright/.cache/
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
 venv/
-env/
 .venv/
+.pytest_cache/
 
 # OS
 .DS_Store
@@ -35,11 +32,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Test output
+# Logs
 *.log
-screenshots/
-videos/
-downloads/
-
-# Local reference docs (not for submission)
-.local/

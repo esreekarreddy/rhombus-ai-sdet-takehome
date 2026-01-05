@@ -1,0 +1,25 @@
+id,name,email,age,salary,department,status
+4,Alice Brown,alice.brown@example.com,32.0,55000.0,HR,inactive
+3,Bob Wilson,bob.wilson@example.com,35.0,57550.0,Engineering,active
+6,Charlie Lee,charlie.lee@example.com,45.0,57550.0,Marketing,inactive
+7,Diana Ross,diana.ross@example.com,29.0,48000.0,Engineering,inactive
+8,Eve Adams,eve.adams@example.com,34.2,72000.0,HR,active
+9,Frank White,frank.white@example.com,38.0,58000.0,Marketing,active
+10,Grace Kim,grace.kim@example.com,31.0,52000.0,Engineering,active
+11,Henry Park,henry.park@example.com,34.2,61000.0,Sales,active
+12,Ivy Chen,ivy.chen@example.com,27.0,49000.0,Engineering,inactive
+13,Jack Miller,jack.miller@example.com,42.0,57550.0,HR,active
+2,Jane Smith,jane.smith@example.com,34.2,65000.0,Marketing,active
+1,John Doe,john.doe@example.com,28.0,52000.0,Engineering,active
+14,Karen Davis,karen.davis@example.com,36.0,67000.0,Marketing,inactive
+15,Leo Martinez,leo.martinez@example.com,33.0,54000.0,Engineering,active
+16,Mia Johnson,mia.johnson@example.com,34.2,59000.0,Sales,inactive
+17,Noah Brown,noah.brown@example.com,39.0,57550.0,HR,active
+18,Olivia Taylor,olivia.taylor@example.com,30.0,51000.0,Engineering,active
+19,Peter Garcia,peter.garcia@example.com,44.0,73000.0,Marketing,inactive
+20,Quinn Adams,quinn.adams@example.com,26.0,47000.0,Sales,active
+21,Rachel Lee,rachel.lee@example.com,34.2,62000.0,Engineering,active
+22,Sam Wilson,sam.wilson@example.com,37.0,57550.0,HR,inactive
+23,Tina Clark,tina.clark@example.com,34.0,56000.0,Marketing,inactive
+24,Uma Patel,uma.patel@example.com,29.0,50000.0,Engineering,active
+25,Victor Chen,victor.chen@example.com,41.0,68000.0,Sales,active

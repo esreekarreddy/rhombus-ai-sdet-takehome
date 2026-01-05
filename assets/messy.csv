@@ -1,21 +1,26 @@
-id,name,email,age,salary,department,hire_date,status,phone
-1,John Smith,john.smith@email.com,32,75000,Engineering,2021-03-15,active,(555) 123-4567
-2,Jane Doe,JANE.DOE@EMAIL.COM,  28  ,82000,Marketing,2020-07-22,Active,555.234.5678
-3,Bob Johnson,bob.johnson@email,45,95000,Engineering,2019-01-10,ACTIVE,555-345-6789
-4,Alice Brown,alice.brown@email.com,NULL,67000,HR,2022-05-30,active,5554567890
-5,Charlie Wilson,charlie@email.com,38,88000,Sales,2020-11-05,inactive,(555) 567-8901
-6,Diana Lee,diana.lee@email.com,29,72000,Engineering,2021-08-17,Active,555 678 9012
-7,Edward Kim,edward.kim@email.com,41,110000,Management,2018-04-03,active,+1-555-789-0123
-8,Fiona Garcia,fiona@email.com,35,,Marketing,2019-09-28,ACTIVE,555.890.1234
-9,George Martinez,george.martinez@email.com,52,98000,Engineering,2017-02-14,active,(555)901-2345
-10,Helen Taylor,helen.taylor@email.com,27,65000,HR,2023-01-09,Active,555-012-3456
-11,Ivan Chen,ivan.chen@email.com,33,79000,Sales,2020-06-18,active,5551234567
-12,Julia Robinson,julia.robinson@email.com,44,105000,Management,2016-10-25,inactive,555.234.5678
-13,Kevin White,kevin.white@email.com,  31  ,71000,Engineering,03/15/2022,Active,(555) 345-6789
-14,Laura Adams,laura@email.com,36,84000,Marketing,2021-04-07,ACTIVE,555 456 7890
-15,Michael Clark,michael.clark@email.com,48,92000,Sales,2018-12-01,active,+1 555 567 8901
-16,Nancy Hall,nancy.hall@email.com,26,62000,HR,2023-06-20,Active,555-678-9012
-17,Oscar Young,oscar.young@email.com,-5,76000,Engineering,2021-09-12,active,(555)789-0123
-18,Patricia King,patricia@email.com,39,87000,Marketing,2019-05-08,inactive,555.890.1234
-19,Robert Scott,robert.scott@email.com,50,115000,Management,2015-08-30,ACTIVE,555-901-2345
-20,Susan Green,susan.green@email.com,34,N/A,Sales,2020-02-28,Active,(555) 012-3456
+id,name,email,age,salary,department,status
+1,John Doe,john.doe@example.com,28,52000,Engineering,Active
+2,Jane Smith,jane.smith@example.com,NULL,65000,Marketing,ACTIVE
+3,Bob Wilson,bob.wilson@example.com,35,NULL,Engineering,active
+4,Alice Brown,alice.brown@example.com,32,55000,HR,Inactive
+1,John Doe,john.doe@example.com,28,52000,Engineering,Active
+6,Charlie Lee,charlie.lee@example.com,45,NULL,Marketing,INACTIVE
+7,Diana Ross,diana.ross@example.com,29,48000,Engineering,inactive
+8,Eve Adams,eve.adams@example.com,NULL,72000,HR,Active
+9,Frank White,frank.white@example.com,38,58000,Marketing,ACTIVE
+10,Grace Kim,grace.kim@example.com,31,52000,Engineering,active
+11,Henry Park,henry.park@example.com,NULL,61000,Sales,Active
+12,Ivy Chen,ivy.chen@example.com,27,49000,Engineering,INACTIVE
+13,Jack Miller,jack.miller@example.com,42,NULL,HR,active
+14,Karen Davis,karen.davis@example.com,36,67000,Marketing,Inactive
+15,Leo Martinez,leo.martinez@example.com,33,54000,Engineering,ACTIVE
+16,Mia Johnson,mia.johnson@example.com,NULL,59000,Sales,inactive
+17,Noah Brown,noah.brown@example.com,39,NULL,HR,Active
+18,Olivia Taylor,olivia.taylor@example.com,30,51000,Engineering,active
+19,Peter Garcia,peter.garcia@example.com,44,73000,Marketing,INACTIVE
+20,Quinn Adams,quinn.adams@example.com,26,47000,Sales,Active
+21,Rachel Lee,rachel.lee@example.com,NULL,62000,Engineering,ACTIVE
+22,Sam Wilson,sam.wilson@example.com,37,NULL,HR,inactive
+23,Tina Clark,tina.clark@example.com,34,56000,Marketing,Inactive
+24,Uma Patel,uma.patel@example.com,29,50000,Engineering,active
+25,Victor Chen,victor.chen@example.com,41,68000,Sales,ACTIVE
