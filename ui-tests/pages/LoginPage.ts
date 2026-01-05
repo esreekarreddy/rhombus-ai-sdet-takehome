@@ -23,7 +23,7 @@ export class LoginPage extends BasePage {
 
   /** Click login button to navigate to Auth0 */
   async goToLoginPage() {
-    await this.safeClick(this.selectors.loginButtonSidebar);
+    await this.click(this.selectors.loginButtonSidebar);
     await this.page.waitForURL('**/auth.rhombusai.com/**', { timeout: 15000 });
     await this.page.waitForSelector(this.selectors.emailInput, { state: 'visible', timeout: 15000 });
   }

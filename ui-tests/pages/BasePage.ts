@@ -28,16 +28,9 @@ export abstract class BasePage {
     await this.page.waitForURL(pattern, { timeout });
   }
 
-  /** Click element with auto-scroll */
-  async safeClick(selector: string, options?: { timeout?: number }) {
-    const element = this.page.locator(selector);
-    await element.scrollIntoViewIfNeeded();
-    await element.click({ timeout: options?.timeout ?? 10000 });
-  }
-
-  /** Wait for element to become visible */
-  async waitForVisible(selector: string, timeout = 10000) {
-    await this.page.locator(selector).waitFor({ state: 'visible', timeout });
+  /** Click element with auto scroll */
+  async click(selector: string, options?: { timeout?: number }) {
+    await this.page.click(selector, { timeout: options?.timeout });
   }
 
   /** Take numbered screenshot and optionally attach to report */

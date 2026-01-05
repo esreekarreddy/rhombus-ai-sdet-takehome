@@ -28,10 +28,10 @@ export class DashboardPage extends BasePage {
 
   /** Create a new project */
   async createNewProject(projectName: string) {
-    await this.safeClick(this.selectors.newProjectButton);
+    await this.click(this.selectors.newProjectButton);
     await this.page.waitForSelector(this.selectors.projectNameInput, { state: 'visible' });
     await this.page.fill(this.selectors.projectNameInput, projectName);
-    await this.safeClick(this.selectors.createButton);
+    await this.click(this.selectors.createButton);
     await this.page.waitForURL(/\/workflow\/\d+/, { timeout: 15000 });
   }
 
@@ -43,26 +43,23 @@ export class DashboardPage extends BasePage {
 
   /** Switch to Canvas tab */
   async switchToCanvasTab() {
-    await this.safeClick(this.selectors.canvasTab);
-    await this.page.waitForTimeout(500);
+    await this.click(this.selectors.canvasTab);
   }
 
   /** Switch to AI Builder tab */
   async switchToAIBuilderTab() {
-    await this.safeClick(this.selectors.aiBuilderTab);
-    await this.page.waitForTimeout(500);
+    await this.click(this.selectors.aiBuilderTab);
   }
 
   /** Open the Add Node menu */
   async openAddNodeMenu() {
-    await this.safeClick(this.selectors.addNodeButton);
-    await this.page.waitForTimeout(300);
+    await this.click(this.selectors.addNodeButton);
   }
 
   /** Logout from the application */
   async logout() {
-    await this.safeClick(this.selectors.profileButton);
-    await this.safeClick(this.selectors.logoutLink);
+    await this.click(this.selectors.profileButton);
+    await this.click(this.selectors.logoutLink);
     await this.page.waitForURL(/rhombusai\.com/);
   }
 }
