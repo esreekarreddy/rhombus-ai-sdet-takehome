@@ -1,483 +1,263 @@
-# CI / Regression Design – Rhombus AI
+# CI/CD Design – Rhombus AI
 
 ## Overview
 
-This document defines how automated tests integrate into the CI/CD pipeline for Rhombus AI, including test categorization, execution triggers, and failure handling strategies.
-
-## Test Categorization Strategy
-
-Tests are tagged with multiple dimensions to enable flexible execution:
-
-### Tag Dimensions
-
-#### 1. Priority
-- `@smoke` – Critical path tests that must pass for basic functionality
-- `@regression` – Full coverage tests for release confidence
-- `@extended` – Comprehensive edge case and cross-browser tests
-
-#### 2. Layer
-- `@ui` – Playwright end-to-end tests
-- `@api` – Network/service-level tests
-- `@data` – Data validation tests
-
-#### 3. Feature Area
-- `@auth` – Authentication and session management
-- `@upload` – File upload and ingestion
-- `@transformation` – Data transformation workflows
-- `@pipeline` – AI pipeline execution
-- `@download` – File export and download
-
-#### 4. Risk Level
-- `@critical` – Directly impacts user data or core workflows
-- `@high` – Impacts major features
-- `@medium` – Impacts secondary features
-- `@low` – Edge cases or rare scenarios
-
-### Example Test Tags
-
-```javascript
-// Playwright test
-test('@smoke @ui @auth @critical - User login flow', async ({ page }) => {
-  // ...
-});
-
-// API test
-test('@smoke @api @upload @critical - Upload CSV file', async () => {
-  // ...
-});
-
-// Data validation
-test('@regression @data @transformation @critical - Validate row count', async () => {
-  // ...
-});
-```
+This document explains how I'd integrate the test suite into CI/CD. The goal is fast feedback on PRs, comprehensive nightly coverage, and high confidence before releases.
 
 ---
 
-## Pipeline Execution Strategy
+## Test Tags
+
+I use simple tags to organize tests:
+
+```typescript
+// UI Tests
+test('@smoke @ui Login and dashboard', ...)
+test('@regression @ui All transformers', ...)
+
+// API Tests
+test('@smoke @api Auth endpoints', ...)
+test('@api @negative Invalid upload', ...)
+
+// Data Validation
+test('@data Schema validation', ...)
+test('@data Row count after transformations', ...)
+```
+
+**Tags explained:**
+
+- `@smoke` – Must pass. Blocks PR merge.
+- `@regression` – Full coverage. Nightly.
+- `@negative` – Error handling tests.
+- `@ui`, `@api`, `@data` – Test layer.
+
+---
+
+## Pipeline Configuration
 
 ### 1. Pull Request Pipeline
 
-**Trigger:** On every pull request to `main` or `develop`
+**When:** Every PR to `main`  
+**Time:** < 5 minutes  
+**Purpose:** Fast feedback, block broken merges
 
-**Execution Time Target:** < 10 minutes
-
-**Tests Executed:**
-- `@smoke` tests (UI + API)
-- `@critical` data validation (small datasets)
-- Linting and code quality checks
-
-**Parallelization:**
-- Run UI, API, and data validation suites concurrently
-- Split UI tests across 2-3 workers
-
-**Failure Behavior:**
-- **Block merge** if any test fails
-- Auto-retry once on failure (to handle transient issues)
-- Post results as PR comment with links to detailed reports
-
-**Artifacts:**
-- Test results (JUnit XML)
-- Screenshots on failure
-- Playwright trace files
-- API request/response logs
-
-**Pseudo-YAML:**
 ```yaml
+# .github/workflows/pr-tests.yml
 name: PR Tests
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   smoke-tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        shard: [1/3, 2/3, 3/3]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - name: Install dependencies
-        run: |
-          cd ui-tests && npm ci
-          cd ../api-tests && npm ci
-      - name: Run smoke tests
-        run: |
-          cd ui-tests
-          npx playwright test --grep @smoke --shard ${{ matrix.shard }}
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: test-results-${{ matrix.shard }}
-          path: |
-            ui-tests/playwright-report/
-            ui-tests/test-results/
-  
-  api-smoke:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci && npx playwright install chromium
+
+      - name: Run smoke tests
+        run: npx playwright test --grep @smoke
+        env:
+          RHOMBUS_EMAIL: ${{ secrets.RHOMBUS_EMAIL }}
+          RHOMBUS_PASSWORD: ${{ secrets.RHOMBUS_PASSWORD }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+
+  api-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Run API smoke tests
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+
+      - name: Run API tests
         run: |
           cd api-tests
           npm ci
           npm test -- --grep @smoke
-  
-  require-passing:
-    needs: [smoke-tests, api-smoke]
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "All smoke tests passed"
 ```
+
+**What blocks merge:**
+
+- Any `@smoke` test failure
+- Lint errors
 
 ---
 
-### 2. Nightly Regression Pipeline
+### 2. Nightly Pipeline
 
-**Trigger:** Daily at 2:00 AM UTC
+**When:** 2 AM UTC daily  
+**Time:** ~30 minutes  
+**Purpose:** Full regression, catch slow-burning bugs
 
-**Execution Time Target:** < 45 minutes
-
-**Tests Executed:**
-- All `@regression` tests (UI + API + data validation)
-- Cross-browser tests (Chromium, Firefox, Safari)
-- Extended data validation with larger datasets
-- Performance smoke tests (load time, API latency)
-
-**Parallelization:**
-- Run 5-10 parallel workers for UI tests
-- Separate jobs for each browser
-- Concurrent API and data validation suites
-
-**Failure Behavior:**
-- **Do not block development** (non-blocking)
-- Send Slack notification on failure
-- Create GitHub issue for failing tests (auto-tagged)
-- Generate trend report comparing to previous runs
-
-**Artifacts:**
-- Full Playwright HTML report
-- Video recordings of failures
-- Network HAR files
-- Data validation reports (CSV diffs)
-- Performance metrics
-
-**Pseudo-YAML:**
 ```yaml
+# .github/workflows/nightly.yml
 name: Nightly Regression
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 2:00 AM UTC daily
-  workflow_dispatch:  # Manual trigger
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 jobs:
-  ui-regression:
+  full-regression:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
-        shard: [1/5, 2/5, 3/5, 4/5, 5/5]
     steps:
-      - uses: actions/checkout@v3
-      - name: Run UI regression
-        run: |
-          cd ui-tests
-          npm ci
-          npx playwright test --grep @regression --project ${{ matrix.browser }} --shard ${{ matrix.shard }}
-      - name: Upload results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: ui-results-${{ matrix.browser }}-${{ matrix.shard }}
-          path: ui-tests/playwright-report/
+      - uses: actions/checkout@v4
 
-  api-regression:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+      - name: Run full UI tests
+        run: npx playwright test --project=${{ matrix.browser }}
+
       - name: Run all API tests
-        run: |
-          cd api-tests
-          npm ci
-          npm test
-  
-  data-validation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+        run: cd api-tests && npm test
+
       - name: Run data validation
         run: |
           cd data-validation
           pip install -r requirements.txt
-          python validate_output.py --mode full
-  
-  notify:
-    needs: [ui-regression, api-regression, data-validation]
+          pytest test_validation.py -v
+
+  notify-on-failure:
+    needs: full-regression
     if: failure()
     runs-on: ubuntu-latest
     steps:
-      - name: Notify on Slack
+      - name: Slack notification
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
-            {
-              "text": "Nightly regression failed",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "Nightly regression tests failed. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Results>"
-                  }
-                }
-              ]
-            }
+            {"text": "Nightly regression failed - check results"}
 ```
+
+**What gets reported:**
+
+- Pass/fail summary in Slack
+- Full HTML report as artifact
+- Screenshots and videos on failure
 
 ---
 
-### 3. Pre-Release Pipeline
+### 3. Release Pipeline
 
-**Trigger:** Manually before production deployment
+**When:** Manual trigger before deploy  
+**Time:** ~10 minutes  
+**Purpose:** Final gate, high confidence release
 
-**Execution Time Target:** < 15 minutes
-
-**Tests Executed:**
-- All `@smoke` tests
-- All `@critical` tests
-- Security smoke tests (auth, CSRF, XSS basics)
-- Data integrity validation with production-like datasets
-
-**Parallelization:**
-- Maximum parallelization for speed
-- Run against staging environment (production mirror)
-
-**Failure Behavior:**
-- **Block release deployment**
-- Require manual override (with approval from QA lead)
-- Send alert to release manager
-
-**Artifacts:**
-- Detailed test execution report
-- Security scan results
-- Data validation report
-- Environment health check logs
-
-**Pseudo-YAML:**
 ```yaml
-name: Pre-Release Gate
+# .github/workflows/release.yml
+name: Release Gate
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to test'
+      version:
+        description: "Release version"
         required: true
-        default: 'staging'
 
 jobs:
-  release-gate:
+  release-tests:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Run smoke tests
-        run: |
-          cd ui-tests
-          npm ci
-          npx playwright test --grep "@smoke|@critical"
-      - name: Run API critical tests
-        run: |
-          cd api-tests
-          npm ci
-          npm test -- --grep "@smoke|@critical"
+      - uses: actions/checkout@v4
+
+      - name: Run critical tests
+        run: npx playwright test --grep "@smoke|@critical"
+
       - name: Data integrity check
         run: |
           cd data-validation
           pip install -r requirements.txt
-          python validate_output.py --mode critical
+          python validator.py ../test-results/downloads/cleaned_data.csv
+
       - name: Generate release report
-        if: always()
-        run: |
-          echo "Release readiness report" > release-report.md
-          echo "All critical tests passed" >> release-report.md
-      - name: Block on failure
-        if: failure()
-        run: exit 1
+        run: echo "Release ${{ inputs.version }} ready"
+```
+
+**What blocks release:**
+
+- Any critical test failure
+- Data validation failure
+
+---
+
+## Summary Table
+
+| Pipeline    | Trigger  | Tests                                    | Time    | Blocks                |
+| ----------- | -------- | ---------------------------------------- | ------- | --------------------- |
+| **PR**      | Every PR | `@smoke` only                            | ~5 min  | Merge                 |
+| **Nightly** | 2 AM UTC | All tests                                | ~30 min | Nothing (alerts team) |
+| **Release** | Manual   | `@smoke` + `@critical` + data validation | ~10 min | Deploy                |
+
+---
+
+## Artifacts Collected
+
+**Always:**
+
+- JUnit XML (for CI dashboards)
+- Console logs
+
+**On failure:**
+
+- Screenshots
+- Video recordings
+- Playwright traces
+- Network HAR files
+
+**On nightly:**
+
+- Full HTML report
+- Test execution trends
+- Data validation report
+
+---
+
+## Flaky Test Handling
+
+In CI, I handle flaky tests with:
+
+1. **Auto-retry** – Tests retry once on failure
+2. **Quarantine tag** – `@quarantine` tests run nightly only
+3. **Pass rate tracking** – Flag tests below 95%
+
+```yaml
+# playwright.config.ts
+retries: process.env.CI ? 1 : 0,
 ```
 
 ---
 
-## What Blocks What
+## Secrets Management
 
-### Pull Request Merge
-**Blocked by:**
-- Any `@smoke` test failure
-- Linting or code quality failures
-- Merge conflict
+Required environment variables:
 
-**Not blocked by:**
-- Nightly regression failures
-- Performance degradation (warning only)
+| Secret             | Purpose               |
+| ------------------ | --------------------- |
+| `RHOMBUS_EMAIL`    | Test account email    |
+| `RHOMBUS_PASSWORD` | Test account password |
 
----
-
-### Production Release
-**Blocked by:**
-- Any `@critical` test failure
-- Any `@smoke` test failure
-- Security scan failures
-- Data validation failures
-
-**Not blocked by:**
-- `@medium` or `@low` test failures (with approval)
-- Known flaky tests (if documented)
+Stored in GitHub Secrets, injected at runtime.
 
 ---
 
-### Deployment to Staging
-**Blocked by:**
-- Integration test failures
-- Build failures
+## What I'd Add Later
 
-**Not blocked by:**
-- UI test failures (can deploy for exploratory testing)
+If I had more time:
 
----
-
-## Artifact Collection
-
-### Always Collected
-- Test execution logs (stdout/stderr)
-- JUnit XML reports (for CI dashboards)
-- Failure screenshots (on UI test failures)
-
-### On Failure
-- Full Playwright trace files (for debugging)
-- Video recordings of failed tests
-- Network HAR files (API calls)
-- Browser console logs
-- DOM snapshots at failure point
-
-### On Nightly Runs
-- HTML test reports (published to GitHub Pages)
-- Test execution trends (pass/fail rate over time)
-- Performance metrics (load times, API latencies)
-- Coverage reports (if applicable)
-
-### Storage Strategy
-- **Short-term (7 days):** All artifacts in CI system
-- **Long-term (90 days):** Failure artifacts and nightly reports in S3
-- **Permanent:** Release gate reports
-
----
-
-## Test Quarantine Strategy
-
-### When to Quarantine
-A test is quarantined if:
-- Pass rate < 90% over 10 runs
-- Fails intermittently without code changes
-- Requires manual intervention to pass
-
-### Quarantine Process
-1. Tag test with `@quarantine`
-2. Move to separate test suite
-3. Run in nightly pipeline only (non-blocking)
-4. Create GitHub issue to track fix
-5. Remove from PR and release gates
-
-### Quarantine Review
-- Weekly review of quarantined tests
-- Fix or delete within 2 weeks
-- If unfixable, consider rewriting at different layer
-
----
-
-## Rollback Strategy
-
-### Automatic Rollback Triggers
-- Critical test failures in production smoke tests post-deployment
-- Error rate spike > 5% in production monitoring
-- Data validation failures in production
-
-### Manual Rollback
-- QA lead or release manager can trigger
-- Requires justification and incident report
-
----
-
-## Notifications
-
-### Slack Channels
-- `#ci-alerts` – All test failures
-- `#releases` – Release gate results
-- `#qa-team` – Nightly regression summary
-
-### Notification Rules
-- **PR tests:** Comment on PR with results
-- **Nightly:** Slack notification only on failure
-- **Release gate:** Slack + email to release manager
-
----
-
-## Metrics and Dashboards
-
-### Key Metrics Tracked
-- Test execution time (per suite)
-- Pass/fail rates (per tag, per suite)
-- Flaky test count
-- Time to detect failures (feedback loop time)
-- Test coverage (% of features with automated tests)
-
-### Dashboard Views
-1. **CI Health Dashboard**
-   - Current pipeline status
-   - Recent failure trends
-   - Flaky test list
-
-2. **Release Readiness Dashboard**
-   - Pre-release test results
-   - Outstanding critical issues
-   - Deployment approval status
-
-3. **Test Execution Trends**
-   - Historical pass/fail rates
-   - Average execution times
-   - Test count growth
-
----
-
-## Future Enhancements
-
-### Short-term (Next Quarter)
-- Add contract testing for AI service APIs
-- Implement visual regression testing for key UI components
-- Add performance benchmarking to nightly runs
-
-### Long-term (Next Year)
-- Chaos engineering tests (simulate failures)
-- A/B testing validation
-- Accessibility (a11y) automated checks
-- Mobile responsive testing
-
----
-
-## Summary
-
-This CI design ensures:
-- **Fast feedback** on PRs (< 10 min)
-- **Comprehensive coverage** in nightly runs
-- **High confidence** before releases
-- **Minimal false positives** through quarantine strategy
-- **Clear accountability** with blocking rules
-
-By categorizing tests and executing them strategically, we balance speed, coverage, and reliability throughout the development lifecycle.
+- **Parallel sharding** – Split UI tests across runners
+- **Visual regression** – Percy or Playwright screenshot comparison
+- **Performance baseline** – Track API latencies
+- **Deployment verification** – Run smoke after deploy

@@ -1,55 +1,57 @@
-# Data Validation
+# Data Validation Scripts
 
-Python scripts for validating transformed data output from Rhombus AI.
+This directory contains Python scripts to validate the integrity and correctness of data transformed by the Rhombus AI pipeline.
 
-## Setup
+## 📂 Contents
+
+- **`validator.py`**: A standalone script to validate a specific CSV file against business rules.
+- **`test_validation.py`**: A `pytest` test suite that verifies both the "messy" input data (to ensure it actually needs cleaning) and the "cleaned" output data.
+- **`requirements.txt`**: Python dependencies.
+
+## 🚀 Usage
+
+### Option 1: Run via NPM (Recommended)
+
+From the project root:
+
+```bash
+# Run the full validation test suite
+npm run test:validation
+
+# Run validation on the generated output file
+npm run validate:csv
+```
+
+### Option 2: Run Directly with Python
+
+Prerequisites:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
-
-### Command Line Validator
+**Run the validator:**
 
 ```bash
+python validator.py <path_to_csv>
+
+# Example:
 python validator.py ../test-results/downloads/cleaned_data.csv
 ```
 
-**Output:**
-
-```
-[PASS] SCHEMA       - 7 columns present
-[PASS] ROW_COUNT    - 24 rows (expected 24-25)
-[PASS] TEXT_CASE    - All status values are lowercase
-[PASS] NO_NULLS     - age: No NULL values, salary: No NULL values
-[PASS] NO_DUPLICATES - No duplicate rows
-[PASS] SORTED       - Data is sorted by name (ascending)
-
-OVERALL: ✓ ALL VALIDATIONS PASSED
-```
-
-### Pytest Suite
+**Run the test suite:**
 
 ```bash
-pytest test_validation.py -v
+pytest -v
 ```
 
-## Validation Checks
+## 🔍 What is Validated?
 
-| Check         | Description                                                 |
-| ------------- | ----------------------------------------------------------- |
-| Schema        | 7 columns: id, name, email, age, salary, department, status |
-| Row Count     | 24 rows (after removing 1 duplicate)                        |
-| Text Case     | status column is lowercase                                  |
-| No Nulls      | age and salary have no NULL values                          |
-| No Duplicates | No duplicate rows exist                                     |
-| Sorted        | Rows sorted by name (ascending)                             |
+The scripts verify the following transformations:
 
-## Files
-
-| File                 | Description                          |
-| -------------------- | ------------------------------------ |
-| `validator.py`       | Standalone validation script         |
-| `test_validation.py` | Pytest test suite                    |
-| `requirements.txt`   | Python dependencies (pandas, pytest) |
+1.  **Text Case**: The `status` column must be lowercase.
+2.  **Impute**: `age` and `salary` columns must have no NULL values.
+3.  **Remove Duplicates**: The dataset must contain no duplicate rows.
+4.  **Sort Data**: The dataset must be sorted by `name` (ascending).
+5.  **Schema**: The output must contain all required columns.
+6.  **Row Count**: The output row count must match the expected reduced count (after deduplication).

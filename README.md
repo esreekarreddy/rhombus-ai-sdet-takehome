@@ -27,6 +27,7 @@ npm test
 | --------------------- | ------------------------- |
 | `npm test`            | Run all tests             |
 | `npm run test:ui`     | UI end-to-end tests only  |
+| `npm run test:api`    | Run API tests only        |
 | `npm run test:smoke`  | Smoke tests only (fast)   |
 | `npm run test:headed` | Run with visible browser  |
 | `npm run test:debug`  | Debug mode (step through) |
@@ -35,6 +36,20 @@ npm test
 ---
 
 ## 🔬 Data Validation (Python)
+
+You can run data validation directly via npm:
+
+```bash
+# Run the automated validation suite (pytest)
+npm run test:validation
+
+# Run manual validation on the output file
+npm run validate:csv
+```
+
+### Manual Setup (Optional)
+
+If you prefer running directly with Python:
 
 ```bash
 cd data-validation
@@ -52,25 +67,32 @@ pytest test_validation.py -v
 ## 📁 Project Structure
 
 ```
-├── ui-tests/               # Playwright UI tests (Part 2)
+├── ui-tests/               # Playwright UI tests
 │   ├── pages/              # Page Object Model
 │   │   ├── BasePage.ts
 │   │   ├── LoginPage.ts
 │   │   ├── DashboardPage.ts
 │   │   └── CanvasPage.ts
 │   └── tests/
+│       ├── auth.setup.ts   # Authentication setup
 │       └── manual-transformation-flow.spec.ts
-├── api-tests/              # API tests (Part 3) - Coming soon
-├── data-validation/        # Python validation (Part 4)
-│   ├── validator.py
-│   └── test_validation.py
+├── api-tests/              # API / network-level tests
+│   ├── auth.spec.ts        # Authentication tests (positive + negative)
+│   ├── pipeline.spec.ts    # Pipeline status via network interception
+│   └── upload.spec.ts      # Upload validation via network interception
+├── data-validation/        # Python data validation scripts
+│   ├── validator.py        # Standalone validation script
+│   ├── test_validation.py  # Pytest test suite
+│   └── README.md
+├── tools/                  # Development utilities (not part of submission)
+│   └── network-sniffer.ts  # Used for API endpoint discovery
 ├── assets/
 │   └── messy.csv           # Test input data (25 rows)
 ├── test-results/
 │   ├── downloads/          # Output CSV files
 │   └── screenshots/        # Step-by-step screenshots
-├── test-strategy.md        # Test strategy (Part 1)
-└── ci-design.md            # CI/CD design (Part 5)
+├── test-strategy.md        # Test strategy & risk analysis
+└── ci-design.md            # CI/CD pipeline design
 ```
 
 ---

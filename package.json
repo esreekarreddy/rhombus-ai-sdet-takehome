@@ -9,6 +9,8 @@
     "test:smoke": "playwright test --grep @smoke",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
+    "test:validation": "pytest data-validation/",
+    "validate:csv": "python3 data-validation/validator.py test-results/downloads/cleaned_data.csv",
     "report": "playwright show-report"
   },
   "keywords": [

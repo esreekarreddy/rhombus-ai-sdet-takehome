@@ -1,388 +1,302 @@
 # Test Strategy – Rhombus AI
 
+## Executive Summary
+
+This document outlines how I'd approach quality engineering for Rhombus AI as a Senior SDET. Having explored the live application, I've identified that Rhombus is a **data transformation platform** with two modes:
+
+1. **AI-Assisted Mode** – Chat-based pipeline creation via natural language
+2. **Manual Mode** – Node-by-node pipeline building on a visual canvas
+
+The platform supports **19 transformers** across 5 categories, handles CSV/Excel uploads, and outputs cleaned data. My testing strategy focuses on protecting data integrity, ensuring reliable pipeline execution, and maintaining fast feedback loops.
+
+---
+
 ## 1. Top Regression Risks
 
-### Risk 1: Data Loss During CSV Upload and Ingestion
+### Risk 1: Data Corruption During Upload/Transformation
 
-**Why High Impact:**  
-Loss or corruption of customer data during upload would be catastrophic. Users trust Rhombus AI with potentially sensitive datasets, and any data loss undermines core product value.
+**What happens:** User uploads a CSV, applies transformers, downloads result – but the output has wrong values, missing rows, or schema changes they didn't expect.
 
-**Why Likely to Regress:**  
-- File parsing logic handles multiple CSV formats, encodings, and edge cases
-- Changes to upload endpoints or file processing pipelines can introduce silent failures
-- Large file handling, timeout behavior, and chunked uploads are prone to edge case bugs
+**Why it's high impact:**
 
-**Mitigation Layers:**
-- **API tests:** Verify upload endpoints return correct status codes and file IDs
-- **Data validation:** Compare row counts and checksums between uploaded and processed files
-- **UI tests:** Validate upload success indicators and error messaging
+- Users trust Rhombus with their data. Silent corruption = lost trust = churn.
+- A single bug in the Impute transformer could affect every customer using it.
 
----
+**Why it's likely to regress:**
 
-### Risk 2: Data Transformation Incorrectness
+- 19 transformers, each with complex logic (e.g., Impute calculates mean/median)
+- Transformers interact – Text Case + Sort + Remove Duplicates in sequence
+- Edge cases: NULL handling, empty strings, unicode, mixed types
 
-**Why High Impact:**  
-Users rely on transformations to clean, reshape, and prepare data. Incorrect transformations (wrong formulas, dropped columns, type coercion errors) can lead to downstream business decisions based on flawed data.
+**How I'd test it:**
 
-**Why Likely to Regress:**
-- Transformation logic is complex and interdependent
-- AI-driven transformations may have non-deterministic outputs that mask bugs
-- Manual transformation rules (filtering, deduplication, joins) have many edge cases
-
-**Mitigation Layers:**
-- **Data validation:** Automated correctness checks comparing input and output (schema, types, row counts, sample values)
-- **API tests:** Verify transformation metadata and status
-- **UI tests:** Smoke test that transformations complete end-to-end
+- Data validation scripts comparing input → output (schema, row counts, sample values)
+- Targeted transformer tests with known messy data
+- API tests to verify transformation endpoints return correct data
 
 ---
 
-### Risk 3: AI Pipeline Failures or Timeouts
+### Risk 2: Pipeline Execution Failures
 
-**Why High Impact:**  
-The AI-assisted pipeline is a differentiating feature. If pipelines fail to execute, hang indefinitely, or produce errors, users cannot complete their workflows.
+**What happens:** User builds a pipeline (manually or via AI), clicks "Apply", and it hangs, errors, or produces no output.
 
-**Why Likely to Regress:**
-- AI model changes, API integration updates, or infrastructure scaling issues can cause failures
-- Timeout behavior and retry logic are difficult to test exhaustively
-- Error recovery paths may not be well-exercised in production
+**Why it's high impact:**
 
-**Mitigation Layers:**
-- **API tests:** Poll pipeline status endpoints to detect failures, validate state transitions
-- **UI tests:** Verify pipeline creation, execution progress indicators, and completion states
-- **Contract tests (future):** Validate AI service API contracts
+- Dead pipelines = stuck users = support tickets
+- The "Apply" button is the core call-to-action
 
----
+**Why it's likely to regress:**
 
-### Risk 4: File Download and Export Corruption
+- Backend orchestration across multiple transformers
+- Timeout handling when datasets are large
+- AI-generated pipelines may create invalid transformer configurations
 
-**Why High Impact:**  
-After transformation, users download results. Corrupted, incomplete, or incorrectly formatted downloads render the product unusable for that session.
+**How I'd test it:**
 
-**Why Likely to Regress:**
-- Export logic must handle various output formats (CSV, Excel, JSON)
-- Streaming large files can introduce truncation or encoding issues
-- Changes to backend serialization logic can break downloads
-
-**Mitigation Layers:**
-- **Data validation:** Parse and validate downloaded files programmatically
-- **API tests:** Verify download endpoints return correct content-type, status codes, and file sizes
-- **UI tests:** Trigger download action and verify file presence
+- E2E tests that complete the full flow: Upload → Transform → Download
+- API tests for pipeline status endpoints (pending → running → completed/failed)
+- Negative tests: What happens when a transformer fails mid-pipeline?
 
 ---
 
-### Risk 5: Authentication and Session Management
+### Risk 3: AI Agent Misbehavior
 
-**Why High Impact:**  
-Users must remain authenticated to access datasets and pipelines. Session expiration, token invalidation, or logout bugs can cause data loss or workflow interruption.
+**What happens:** User asks the AI to "remove duplicates and sort by date" but it creates wrong transformers, applies them to wrong columns, or fails silently.
 
-**Why Likely to Regress:**
-- Authentication flows involve multiple services (OAuth, JWT, session cookies)
-- Security updates, token refresh logic, and timeout behavior change frequently
-- Edge cases like concurrent sessions or expired tokens are easy to break
+**Why it's high impact:**
 
-**Mitigation Layers:**
-- **API tests:** Validate login, token refresh, and session invalidation behavior
-- **UI tests:** Test login flow, session persistence, and logout
-- **Security tests (future):** Token validation, CSRF, and session hijacking
+- AI-Assisted Mode is the recommended flow – it's the first thing new users try
+- Bad AI = magic that doesn't work = user gives up
+
+**Why it's likely to regress:**
+
+- LLM outputs change with model updates
+- Prompt → transformer mapping is probabilistic
+- Context length, dataset schema interpretation
+
+**How I'd test it:**
+
+- Structural validation: AI created pipeline with expected transformer types
+- State transitions: Pipeline goes through correct status flow
+- **NOT** exact output matching (too brittle for AI)
+
+---
+
+### Risk 4: Download/Export Failures
+
+**What happens:** User completes their pipeline, clicks Download, and gets a corrupted file, empty file, or wrong format.
+
+**Why it's high impact:**
+
+- Download is the final step – it's the whole point of using Rhombus
+- Corrupted exports mean the user's work is lost
+
+**Why it's likely to regress:**
+
+- CSV serialization edge cases (commas in values, unicode, large files)
+- XLSX export involves different libraries
+- Streaming/chunking for large datasets
+
+**How I'd test it:**
+
+- UI test: Click Download → verify file exists and has content
+- Data validation: Parse downloaded file and validate structure
+- API test: Download endpoint returns correct Content-Type and file size
+
+---
+
+### Risk 5: Authentication/Session Issues
+
+**What happens:** User is logged in, working on a pipeline, session expires, and they lose work or can't save.
+
+**Why it's high impact:**
+
+- Data loss during active work = terrible UX
+- Auth bugs block access to the entire product
+
+**Why it's likely to regress:**
+
+- Auth0 integration with token refresh logic
+- Session storage for pipeline state
+- Multi-tab/multi-device scenarios
+
+**How I'd test it:**
+
+- API tests for login/logout/token refresh
+- UI test for login flow
+- (Future) Session timeout scenarios
 
 ---
 
 ## 2. Automation Prioritization
 
-### What to Automate First
+### What I'd Automate First
 
-**1. Smoke Tests – Critical Path (UI + API)**  
-**Why:**  
-- Provides fast feedback on whether core workflows function
-- Blocks broken builds from reaching QA or production
-- Covers login, upload, transformation, and download – the essential user journey
+| Priority | What                               | Why                                              |
+| -------- | ---------------------------------- | ------------------------------------------------ |
+| 1        | **Manual Transformation E2E Flow** | Core user journey. Deterministic. High signal.   |
+| 2        | **Data Validation Scripts**        | Catches silent bugs UI tests miss. Cheap to run. |
+| 3        | **Auth API Tests**                 | Fast, reliable, blocks broken builds.            |
+| 4        | **Upload/Download API Tests**      | Critical path without UI overhead.               |
 
-**2. Data Correctness Validation**  
-**Why:**  
-- Data integrity is the product's core value proposition
-- Catches subtle bugs that UI tests miss (wrong calculations, dropped rows, type errors)
-- High ROI: prevents silent failures that damage user trust
+### What I'd NOT Automate Yet
 
-**3. API Contract Tests (Authentication, Upload, Pipeline Status)**  
-**Why:**  
-- Faster than UI tests, providing quick regression coverage
-- Validates backend logic independently of UI changes
-- Detects breaking API changes early
-
-### What NOT to Automate Yet
-
-**1. AI-Generated Content Validation**  
-**Why:**  
-- AI outputs are probabilistic and non-deterministic
-- Exact output matching is impossible; structural validation is sufficient for now
-- Manual review and user feedback are better suited for AI quality assessment
-
-**2. Comprehensive UI Visual Regression**  
-**Why:**  
-- High maintenance cost with pixel-level comparisons
-- Low ROI for a data-heavy application where functionality > appearance
-- Better suited for marketing pages, not workflow tools
-
-**3. Performance and Load Testing**  
-**Why:**  
-- Requires production-like infrastructure and scale
-- Better handled in dedicated performance testing phases
-- Functional correctness is higher priority initially
+| What                     | Why Not                                                         |
+| ------------------------ | --------------------------------------------------------------- |
+| **AI Output Validation** | Non-deterministic. Test structure, not exact output.            |
+| **All 19 Transformers**  | Diminishing returns. Cover high-risk transformers first.        |
+| **Visual Regression**    | Low ROI for a data app. Functionality matters more than pixels. |
+| **Performance/Load**     | Needs dedicated infrastructure. Not a bug-finding priority.     |
 
 ---
 
 ## 3. Test Layering Strategy
 
-### UI End-to-End Tests (Playwright)
+### Layer 1: UI E2E Tests (Playwright)
 
-**Purpose:**  
-Validate critical user journeys from the user's perspective, ensuring workflows complete successfully.
+**Purpose:** Prove the critical user journey works end-to-end.
 
-**Failure Types Detected:**
-- Navigation and routing issues
-- UI state management bugs
-- Integration failures between frontend and backend
-- User-facing error messages
+**What they catch:**
+
+- Broken navigation, selectors, button states
+- Frontend-backend integration failures
+- User-facing error messages not appearing
 
 **Coverage:**
-- Login flow
-- File upload and preview
-- Transformation application (manual or AI-assisted)
-- Pipeline execution progress
-- File download
 
-**Maintenance Strategy:**
-- Use Page Object Model for maintainability
-- Keep test count low (5-10 critical flows)
-- Run on every PR and release
+- Login → Dashboard → Create Project → Upload → Transform → Download
+
+**Trade-off:** Slow but high confidence. Run on PR + nightly.
 
 ---
 
-### API / Network-Level Tests
+### Layer 2: API Tests
 
-**Purpose:**  
-Test backend services independently of the UI, providing fast and reliable regression coverage.
+**Purpose:** Fast feedback on backend functionality without UI overhead.
 
-**Failure Types Detected:**
-- API contract violations (breaking changes)
-- Status code errors
+**What they catch:**
+
+- Endpoint contract violations
+- Status code errors (400, 401, 500)
 - Response payload schema issues
-- Authentication and authorization failures
 
 **Coverage:**
-- Authentication endpoints (login, logout, token refresh)
-- Dataset upload and validation
-- Pipeline creation and status polling
-- Download endpoints
-- Error handling (400, 401, 403, 500 responses)
 
-**Maintenance Strategy:**
-- Run on every commit
-- Use JSON schema validation for response payloads
-- Include negative test cases
+- Auth endpoints (login, logout, refresh)
+- Upload endpoint (valid file, invalid file, large file)
+- Pipeline execution status
+- Download endpoint
+
+**Trade-off:** Fast and reliable. Run on every commit.
 
 ---
 
-### Data Validation Tests
+### Layer 3: Data Validation
 
-**Purpose:**  
-Validate that transformations are mathematically and logically correct, not just that workflows complete.
+**Purpose:** Verify transformations are mathematically correct.
 
-**Failure Types Detected:**
-- Incorrect calculations
-- Data loss (dropped rows or columns)
-- Type coercion errors
-- Schema mismatches
+**What they catch:**
+
+- Wrong calculations (mean vs median)
+- Dropped rows or columns
+- Type coercion bugs
+- NULL handling errors
 
 **Coverage:**
-- Input vs. output row count validation
-- Column schema validation (names, types)
-- Sample value correctness (for deterministic transformations)
-- Edge case handling (nulls, empty strings, special characters)
 
-**Maintenance Strategy:**
-- Run nightly with known test datasets
-- Use golden files or reference outputs for comparison
-- Separate deterministic validation from probabilistic AI outputs
+- Input messy.csv vs output cleaned_data.csv
+- Schema validation (column names, types)
+- Row count validation (25 input → 24 output after deduplication)
+- Sample value checks (status is lowercase, age/salary are imputed)
+
+**Trade-off:** Runs after E2E test produces output. Highly deterministic.
 
 ---
 
 ## 4. Regression Strategy
 
-### What Runs on Every Pull Request
+### What Runs When
 
-**Smoke Tests (UI + API) – ~5 minutes**
-- Login flow
-- Upload small CSV
-- One transformation
-- Download result
-- Authentication API tests
-- Upload API validation
+| Trigger         | Tests                   | Time    | Purpose             |
+| --------------- | ----------------------- | ------- | ------------------- |
+| **PR**          | Smoke (UI + API)        | ~5 min  | Block broken merges |
+| **Nightly**     | Full regression         | ~30 min | Deeper coverage     |
+| **Pre-release** | Smoke + Data Validation | ~10 min | Release gate        |
 
-**Why:**  
-Provides fast feedback to developers. If these fail, the PR is not mergeable.
+### What Blocks What
 
----
-
-### What Runs Nightly
-
-**Full Regression Suite – ~30-45 minutes**
-- All UI tests (including edge cases and error paths)
-- All API tests (positive and negative)
-- Data validation tests with larger datasets
-- Cross-browser tests (Chromium, Firefox, Safari)
-
-**Why:**  
-Catches issues that are not in the critical path but would block releases. Provides deeper coverage without slowing PR velocity.
-
----
-
-### What Blocks a Release
-
-**Release Smoke + Data Integrity – ~10 minutes**
-- Full smoke test suite (UI + API)
-- Data validation on production-like datasets
-- Security checks (authentication, authorization)
-
-**Why:**  
-Final gate before production deployment. Must pass to deploy.
-
----
-
-### Execution Strategy
-
-| Test Type         | PR | Nightly | Release |
-|-------------------|----|---------|---------|
-| Smoke (UI + API)  | ✅ | ✅      | ✅      |
-| Full UI Regression| ❌ | ✅      | ✅      |
-| Full API Tests    | ✅ | ✅      | ✅      |
-| Data Validation   | ❌ | ✅      | ✅      |
-| Cross-Browser     | ❌ | ✅      | ❌      |
+| Gate         | Blocked By                                          |
+| ------------ | --------------------------------------------------- |
+| **PR Merge** | Any smoke test failure                              |
+| **Release**  | Any critical test failure + data validation failure |
 
 ---
 
 ## 5. Testing AI-Driven Behavior
 
-### What to Assert
+### The Problem with AI Testing
 
-**1. Pipeline Completion**  
-Verify that AI-assisted pipelines execute to completion without errors, regardless of the specific transformation logic.
+The AI Agent is probabilistic. Given the same prompt twice, it might produce slightly different pipelines. Testing exact outputs is a recipe for flaky tests.
 
-**2. Structural Correctness**  
-Assert that outputs have valid schemas (correct column names, types, row counts within expected bounds).
+### What I Assert
 
-**3. State Transitions**  
-Validate that pipeline states progress correctly: `created` → `running` → `completed` (or `failed`).
+| Assertion                             | Why It's Stable                |
+| ------------------------------------- | ------------------------------ |
+| "A pipeline was created"              | Structural check, not content  |
+| "Pipeline status reached 'completed'" | State transition, not output   |
+| "Output has expected columns"         | Schema check, not exact values |
+| "Row count is in expected range"      | Bounds check, not exact count  |
 
-**4. User-Facing Feedback**  
-Check that progress indicators, completion messages, and error states are displayed correctly.
+### What I Don't Assert
 
----
+- Exact transformer types (AI might use different approach)
+- Exact output values (tolerance is fine)
+- AI-generated suggestions or chat responses
 
-### What NOT to Assert
+### Making AI Tests Deterministic
 
-**1. Exact AI-Generated Content**  
-Do not assert specific transformation logic or exact output values for AI-driven features. AI models are probabilistic and outputs may vary.
-
-**2. Performance Metrics**  
-AI processing times are variable. Avoid hard-coded timeout values; use polling with reasonable upper bounds instead.
-
-**3. AI Suggestions**  
-Do not validate the quality or relevance of AI recommendations. These are subjective and change with model updates.
-
----
-
-### Keeping Tests Deterministic
-
-**1. Use Known Input Datasets**  
-Test with fixed CSV files that produce predictable results (or predictable result patterns).
-
-**2. Test AI Invocation, Not AI Output**  
-Assert that "AI was called" and "a result was returned," not that the result is exactly X.
-
-**3. Tolerance Ranges**  
-For numerical transformations, validate results within acceptable ranges (e.g., ±1% for rounding).
-
-**4. Fallback Paths**  
-Test that manual transformations work when AI is unavailable or fails.
+1. **Use fixed prompts** – Same input every run
+2. **Validate structure** – Pipeline exists, has nodes, completed
+3. **Tolerance ranges** – Row count within ±10%
+4. **Fallback testing** – If AI fails, manual mode still works
 
 ---
 
 ## 6. Flaky Test Analysis
 
-### Common Causes of Flakiness in Rhombus AI
+### Where Flakiness Comes From (in Rhombus)
 
-**1. Asynchronous UI Updates**  
-The application updates dynamically based on backend responses. Tests fail intermittently if they check UI state before updates complete.
+| Cause                    | Example                                 | Fix                                     |
+| ------------------------ | --------------------------------------- | --------------------------------------- |
+| **Async UI updates**     | Checking text before pipeline completes | Use `waitForSelector('text=completed')` |
+| **Network variability**  | Upload timeout on large file            | Increase timeout, use retry             |
+| **Test data collisions** | Two test runs create same project name  | Use unique `Test_${Date.now()}` names   |
+| **AI non-determinism**   | AI creates different pipeline           | Assert structure, not exact content     |
 
-**Mitigation:**
-- Use Playwright's built-in waits (`waitForSelector`, `waitForLoadState`)
-- Avoid `setTimeout` or fixed delays
-- Wait for specific conditions (e.g., spinner disappears, button enabled)
+### How I Detect Flakiness
 
----
+1. **Run tests 10x locally** – If fails 1/10, it's flaky
+2. **Track CI pass rate** – Flag tests below 95% pass rate
+3. **Retry analysis** – If passes on retry, investigate root cause
 
-**2. Network Variability**  
-File uploads, pipeline execution, and downloads depend on network speed and backend processing time.
+### How I Handle Flaky Tests
 
-**Mitigation:**
-- Use polling with exponential backoff for status checks
-- Set reasonable timeout values (e.g., 60s for uploads, 5min for pipeline execution)
-- Retry transient network failures (429, 503 errors)
-
----
-
-**3. Test Data Collisions**  
-Multiple test runs using the same account can create overlapping datasets or pipelines, causing state conflicts.
-
-**Mitigation:**
-- Use unique identifiers (timestamps, UUIDs) for test datasets
-- Clean up test data after execution (delete pipelines, datasets)
-- Isolate tests with separate test accounts if possible
-
----
-
-**4. Race Conditions in State Management**  
-UI components may render before data is fully loaded, causing assertions to fail sporadically.
-
-**Mitigation:**
-- Assert on stable elements (e.g., "success" text, download button enabled)
-- Use `waitForResponse` to ensure API calls complete before proceeding
-
----
-
-### Detecting Flakiness Over Time
-
-**1. Test Execution Tracking**  
-Run tests multiple times (10x, 100x) to detect intermittent failures.
-
-**2. CI Metrics**  
-Track pass/fail rates over time. Flag tests with <95% pass rate as flaky.
-
-**3. Failure Analysis**  
-Log detailed failure information (screenshots, network logs, timings) to identify patterns.
-
-**4. Automated Retries**  
-Allow tests to retry once on failure. If pass on retry, flag as potentially flaky.
-
----
-
-### Reducing, Quarantining, or Eliminating Flaky Tests
-
-**1. Fix Root Cause**  
-Investigate and fix timing issues, race conditions, or environment dependencies.
-
-**2. Quarantine**  
-Move flaky tests to a separate suite that runs nightly but does not block PRs.
-
-**3. Rewrite**  
-If a test remains flaky after fixes, consider rewriting it at a different layer (e.g., API instead of UI).
-
-**4. Remove**  
-If a test provides low value or cannot be stabilized, delete it. A flaky test is worse than no test.
+| Strategy                       | When to Use                            |
+| ------------------------------ | -------------------------------------- |
+| **Fix root cause**             | First priority – find the timing issue |
+| **Quarantine**                 | Move to nightly, remove from PR gate   |
+| **Rewrite at different layer** | If UI test is flaky, try API test      |
+| **Delete**                     | If test provides no value, remove it   |
 
 ---
 
 ## Summary
 
-This strategy prioritizes **data integrity**, **critical user workflows**, and **test reliability**. By layering tests appropriately, automating high-value scenarios first, and addressing flakiness proactively, we ensure Rhombus AI delivers a trustworthy product with fast, confident release cycles.
+My approach prioritizes:
+
+1. **Data integrity** – Silent corruption is the worst bug
+2. **Critical path coverage** – Upload → Transform → Download must work
+3. **Fast feedback** – PRs blocked in <5 minutes
+4. **Deterministic tests** – No flaky AI assertions
+
+The goal is release confidence without slowing down the team.
