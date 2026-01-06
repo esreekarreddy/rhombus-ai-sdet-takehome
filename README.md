@@ -2,6 +2,8 @@
 
 Automated test suite for [Rhombus AI](https://rhombusai.com) using Playwright with TypeScript and Python.
 
+> **Demo Video:** [Watch the 10-minute walkthrough on Loom](https://www.loom.com/share/3fe5a6c02a4d435290e4298190eb48a7)
+
 ## Quick Start
 
 ```bash
@@ -123,7 +125,7 @@ pytest test_validation.py -v
 
 ## Demo Video
 
-> **Link:** [Coming soon - will be added upon final submission]
+> **Link:** [Watch on Loom](https://www.loom.com/share/3fe5a6c02a4d435290e4298190eb48a7)
 
 ---
 

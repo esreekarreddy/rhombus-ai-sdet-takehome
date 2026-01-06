@@ -204,7 +204,7 @@ jobs:
         run: |
           cd data-validation
           pip install -r requirements.txt
-          python validator.py ../test-results/downloads/cleaned_data.csv
+          pytest test_validation.py -v
 
       - name: Generate release report
         run: echo "Release ${{ inputs.version }} ready"
