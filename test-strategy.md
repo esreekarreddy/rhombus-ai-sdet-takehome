@@ -338,6 +338,22 @@ For production readiness, I would add:
 - Special characters in filenames and data values
 - Concurrent pipeline executions
 
+### AI-Driven Test Generation & Healing (Playwright MCP)
+
+To further modernize the testing stack, I plan to integrate the **Playwright MCP (Model Context Protocol) Server**:
+
+- **Autonomous Test Planning:** Use MCP agents to analyze requirements and propose test scenarios automatically.
+- **Self-Healing Tests:** Enable agents to detect broken selectors due to UI changes and propose fixes in real-time.
+- **Test Generation:** Accelerate coverage by allowing agents to draft test code for new features based on natural language descriptions.
+
+### Scalable Framework Architecture
+
+As the suite grows, creating a robust, low-maintenance architecture is critical:
+
+- **Externalized Locators:** Move selectors out of Page Objects into dedicated JSON/YAML configuration files. This allows non-engineers to update selectors without touching TypeScript code.
+- **Strict Page Object Model (POM):** Enforce strict separation of concerns where tests only call business logic methods (e.g., `uploadFile()`) and never interact with raw locators or standard Playwright primitives.
+- **Atomic Components:** Break down large Page Objects into smaller, reusable UI components (e.g., `DatePicker`, `DataGrid`) to reduce code duplication.
+
 ---
 
 ## Summary

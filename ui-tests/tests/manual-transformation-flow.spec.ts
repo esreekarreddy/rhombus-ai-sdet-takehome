@@ -83,6 +83,10 @@ test.describe('Manual Transformation Flow', () => {
       await expect(page.getByText('Sort Data').first()).toBeVisible();
     });
 
+    await test.step('Click Apply to run the pipeline', async () => {
+      await canvas.clickApply();
+    });
+    
     await test.step('Download and validate output', async () => {
       const download = await canvas.downloadFromPreview();
       const downloadPath = path.join(DOWNLOAD_DIR, CONFIG.outputFile);

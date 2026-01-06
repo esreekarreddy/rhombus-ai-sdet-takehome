@@ -41,7 +41,7 @@ export class CanvasPage extends BasePage {
    * Binds the uploaded dataset by clicking its filename
    */
   async bindDataset(fileName: string): Promise<void> {
-    await this.page.locator('div').filter({ hasText: new RegExp(`^${fileName}$`) }).nth(1).click();
+    await this.page.getByTestId('right-sidebar').getByText(fileName, { exact: true }).click();
     await this.waitForPipelineSuccess();
     await this.takeScreenshot('data_input_bound');
   }
@@ -134,10 +134,9 @@ export class CanvasPage extends BasePage {
   async downloadFromPreview(): Promise<Download> {
     await this.page.getByRole('tab', { name: 'Preview' }).click();
     await this.page.waitForLoadState('networkidle');
+    await expect(this.page.getByRole('button', { name: 'Download' })).toBeVisible();
     await this.takeScreenshot('preview_before_download');
-    
     await this.page.getByRole('button', { name: 'Download' }).click();
-    
     const downloadPromise = this.page.waitForEvent('download', { timeout: 30000 });
     await this.page.getByRole('menuitem', { name: 'Download as CSV' }).click();
     

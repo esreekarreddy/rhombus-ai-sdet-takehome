@@ -105,7 +105,7 @@ jobs:
 
 ### 2. Nightly Pipeline
 
-**When:** 2 AM UTC daily  
+**When:** 3 AM AEST (17:00 UTC) daily  
 **Time:** ~30 minutes  
 **Purpose:** Full regression, catch slow-burning bugs
 
@@ -115,7 +115,7 @@ name: Nightly Regression
 
 on:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 17 * * *"
   workflow_dispatch:
 
 jobs:
@@ -219,11 +219,11 @@ jobs:
 
 ## Summary Table
 
-| Pipeline    | Trigger  | Tests                                    | Time    | Blocks                |
-| ----------- | -------- | ---------------------------------------- | ------- | --------------------- |
-| **PR**      | Every PR | `@smoke` only                            | ~5 min  | Merge                 |
-| **Nightly** | 2 AM UTC | All tests                                | ~30 min | Nothing (alerts team) |
-| **Release** | Manual   | `@smoke` + `@critical` + data validation | ~10 min | Deploy                |
+| Pipeline    | Trigger               | Tests                                    | Time    | Blocks                |
+| ----------- | --------------------- | ---------------------------------------- | ------- | --------------------- |
+| **PR**      | Every PR              | `@smoke` only                            | ~5 min  | Merge                 |
+| **Nightly** | 3 AM AEST (17:00 UTC) | All tests                                | ~30 min | Nothing (alerts team) |
+| **Release** | Manual                | `@smoke` + `@critical` + data validation | ~10 min | Deploy                |
 
 ---
 
