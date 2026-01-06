@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document explains how I'd integrate the test suite into CI/CD. The goal is fast feedback on PRs, comprehensive nightly coverage, and high confidence before releases.
+This document explains how I would integrate the test suite into CI/CD. The goal is fast feedback on PRs, comprehensive nightly coverage, and high confidence before releases.
+
+From my experience running regression pipelines on GitHub Actions with AWS infrastructure for enterprise clients, I know that the key factors are speed, reliability, and proper gating.
 
 ---
 
@@ -18,6 +20,7 @@ test('@regression @ui All transformers', ...)
 // API Tests
 test('@smoke @api Auth endpoints', ...)
 test('@api @negative Invalid upload', ...)
+test('@critical @api Upload endpoint', ...)
 
 // Data Validation
 test('@data Schema validation', ...)
@@ -27,6 +30,7 @@ test('@data Row count after transformations', ...)
 **Tags explained:**
 
 - `@smoke` – Must pass. Blocks PR merge.
+- `@critical` – Must pass for release.
 - `@regression` – Full coverage. Nightly.
 - `@negative` – Error handling tests.
 - `@ui`, `@api`, `@data` – Test layer.
@@ -79,12 +83,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci && npx playwright install chromium
 
       - name: Run API tests
-        run: |
-          cd api-tests
-          npm ci
-          npm test -- --grep @smoke
+        run: npm run test:api -- --grep @smoke
+        env:
+          RHOMBUS_EMAIL: ${{ secrets.RHOMBUS_EMAIL }}
+          RHOMBUS_PASSWORD: ${{ secrets.RHOMBUS_PASSWORD }}
 ```
 
 **What blocks merge:**
@@ -118,11 +127,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: npm ci && npx playwright install
+
       - name: Run full UI tests
         run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          RHOMBUS_EMAIL: ${{ secrets.RHOMBUS_EMAIL }}
+          RHOMBUS_PASSWORD: ${{ secrets.RHOMBUS_PASSWORD }}
 
       - name: Run all API tests
-        run: cd api-tests && npm test
+        run: npm run test:api
+        env:
+          RHOMBUS_EMAIL: ${{ secrets.RHOMBUS_EMAIL }}
+          RHOMBUS_PASSWORD: ${{ secrets.RHOMBUS_PASSWORD }}
 
       - name: Run data validation
         run: |
@@ -173,8 +191,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: npm ci && npx playwright install
+
       - name: Run critical tests
         run: npx playwright test --grep "@smoke|@critical"
+        env:
+          RHOMBUS_EMAIL: ${{ secrets.RHOMBUS_EMAIL }}
+          RHOMBUS_PASSWORD: ${{ secrets.RHOMBUS_PASSWORD }}
 
       - name: Data integrity check
         run: |
@@ -249,15 +273,51 @@ Required environment variables:
 | `RHOMBUS_EMAIL`    | Test account email    |
 | `RHOMBUS_PASSWORD` | Test account password |
 
-Stored in GitHub Secrets, injected at runtime.
+**Security Best Practices:**
+
+- Secrets stored in GitHub Secrets, never in code
+- Injected at runtime via `${{ secrets.* }}`
+- Never printed to logs (`::add-mask::` for sensitive outputs)
+- Separate test accounts from production data
+- Rotate credentials periodically
+
+From my experience, preventing secret leakage during workflow runs is critical. I always ensure:
+
+- No `echo` statements print sensitive values
+- Artifacts are reviewed before public upload
+- Workflow permissions follow least-privilege principle
 
 ---
 
-## What I'd Add Later
+## Future Enhancements
 
-If I had more time:
+Based on my experience with enterprise CI/CD pipelines, I would add:
 
-- **Parallel sharding** – Split UI tests across runners
-- **Visual regression** – Percy or Playwright screenshot comparison
-- **Performance baseline** – Track API latencies
-- **Deployment verification** – Run smoke after deploy
+### Parallel Test Sharding
+
+- Split UI tests across multiple runners for faster execution
+- Use Playwright's built-in sharding: `--shard=1/4`
+
+### Performance Testing Integration
+
+- **Load Testing with k6 or JMeter** - Run on a schedule separate from functional tests
+- **API Latency Tracking** - Alert on P95/P99 regressions
+- **Stress Testing** - Weekly runs to identify breaking points
+
+### BDD Integration
+
+- Integrate Cucumber.js for Gherkin-style tests
+- Generate living documentation from test executions
+- Enable non-technical stakeholders to review test scenarios
+
+### Deployment Verification
+
+- Run smoke tests automatically after each deployment
+- Blue/green deployment health checks
+- Rollback triggers on critical test failures
+
+### Visual Regression
+
+- Percy or Playwright screenshot comparison
+- Only on nightly to avoid PR slowdown
+- Focused on key UI components, not entire pages

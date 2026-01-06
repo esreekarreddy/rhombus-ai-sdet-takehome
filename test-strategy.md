@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines how I'd approach quality engineering for Rhombus AI as a Senior SDET. Having explored the live application, I've identified that Rhombus is a **data transformation platform** with two modes:
+This document outlines how I would approach quality engineering for Rhombus AI as a Senior SDET. Having explored the live application, I identified that Rhombus is a **data transformation platform** with two modes:
 
 1. **AI-Assisted Mode** – Chat-based pipeline creation via natural language
 2. **Manual Mode** – Node-by-node pipeline building on a visual canvas
@@ -28,9 +28,9 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 - Transformers interact – Text Case + Sort + Remove Duplicates in sequence
 - Edge cases: NULL handling, empty strings, unicode, mixed types
 
-**How I'd test it:**
+**How I would test it:**
 
-- Data validation scripts comparing input → output (schema, row counts, sample values)
+- Data validation scripts comparing input to output (schema, row counts, sample values)
 - Targeted transformer tests with known messy data
 - API tests to verify transformation endpoints return correct data
 
@@ -51,7 +51,7 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 - Timeout handling when datasets are large
 - AI-generated pipelines may create invalid transformer configurations
 
-**How I'd test it:**
+**How I would test it:**
 
 - E2E tests that complete the full flow: Upload → Transform → Download
 - API tests for pipeline status endpoints (pending → running → completed/failed)
@@ -71,10 +71,10 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 **Why it's likely to regress:**
 
 - LLM outputs change with model updates
-- Prompt → transformer mapping is probabilistic
+- Prompt to transformer mapping is probabilistic
 - Context length, dataset schema interpretation
 
-**How I'd test it:**
+**How I would test it:**
 
 - Structural validation: AI created pipeline with expected transformer types
 - State transitions: Pipeline goes through correct status flow
@@ -97,7 +97,7 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 - XLSX export involves different libraries
 - Streaming/chunking for large datasets
 
-**How I'd test it:**
+**How I would test it:**
 
 - UI test: Click Download → verify file exists and has content
 - Data validation: Parse downloaded file and validate structure
@@ -120,7 +120,7 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 - Session storage for pipeline state
 - Multi-tab/multi-device scenarios
 
-**How I'd test it:**
+**How I would test it:**
 
 - API tests for login/logout/token refresh
 - UI test for login flow
@@ -130,7 +130,7 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 
 ## 2. Automation Prioritization
 
-### What I'd Automate First
+### What I Would Automate First
 
 | Priority | What                               | Why                                              |
 | -------- | ---------------------------------- | ------------------------------------------------ |
@@ -139,7 +139,7 @@ The platform supports **19 transformers** across 5 categories, handles CSV/Excel
 | 3        | **Auth API Tests**                 | Fast, reliable, blocks broken builds.            |
 | 4        | **Upload/Download API Tests**      | Critical path without UI overhead.               |
 
-### What I'd NOT Automate Yet
+### What I Would NOT Automate Yet
 
 | What                     | Why Not                                                         |
 | ------------------------ | --------------------------------------------------------------- |
@@ -279,6 +279,15 @@ The AI Agent is probabilistic. Given the same prompt twice, it might produce sli
 2. **Track CI pass rate** – Flag tests below 95% pass rate
 3. **Retry analysis** – If passes on retry, investigate root cause
 
+### Stability Techniques Used in This Project
+
+Throughout development, I applied several techniques to ensure test stability:
+
+- **Explicit Waits:** Using `expect().toBeVisible()` instead of arbitrary timeouts
+- **Network Idle:** Waiting for `networkidle` before interacting with data-heavy pages
+- **Pipeline Success Gate:** Every transformation waits for "Pipeline execution completed" before proceeding
+- **Unique Project Names:** Using `Test_${Date.now()}` to avoid test data collisions
+
 ### How I Handle Flaky Tests
 
 | Strategy                       | When to Use                            |
@@ -287,6 +296,47 @@ The AI Agent is probabilistic. Given the same prompt twice, it might produce sli
 | **Quarantine**                 | Move to nightly, remove from PR gate   |
 | **Rewrite at different layer** | If UI test is flaky, try API test      |
 | **Delete**                     | If test provides no value, remove it   |
+
+---
+
+## 7. Future Enhancements
+
+Based on my experience running regression suites for enterprise clients, I would recommend the following additions as the test suite matures:
+
+### BDD with Gherkin/Cucumber
+
+I have experience with Cucumber/Gherkin-style tests which provide:
+
+- Human-readable test scenarios that stakeholders can review
+- Reusable step definitions across multiple test cases
+- Living documentation that stays in sync with tests
+
+Example:
+
+```gherkin
+Feature: Data Transformation
+  Scenario: Clean messy CSV data
+    Given I have uploaded "messy.csv" with 25 rows
+    When I apply Text Case transformation on "status" column
+    And I apply Remove Duplicates on all columns
+    Then I should have 24 rows in the output
+```
+
+### Performance and Load Testing
+
+For production readiness, I would add:
+
+- **Load Testing** with k6 or JMeter to simulate concurrent users
+- **Stress Testing** to find system breaking points
+- **API Performance Baselines** to catch latency regressions
+- **Large File Testing** (100MB+ CSVs) to verify streaming/chunking
+
+### Extended Edge Cases
+
+- Malformed CSV files (missing headers, encoding issues)
+- Maximum column limits
+- Special characters in filenames and data values
+- Concurrent pipeline executions
 
 ---
 

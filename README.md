@@ -2,7 +2,7 @@
 
 Automated test suite for [Rhombus AI](https://rhombusai.com) using Playwright with TypeScript and Python.
 
-## 📋 Quick Start
+## Quick Start
 
 ```bash
 # Install dependencies
@@ -17,11 +17,11 @@ cp .env.example .env
 npm test
 ```
 
-> **Note:** Tests require valid Rhombus AI credentials. Sign up free at https://rhombusai.com
+> **Note:** Tests require valid Rhombus AI credentials.
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 | Command               | Description               |
 | --------------------- | ------------------------- |
@@ -35,9 +35,9 @@ npm test
 
 ---
 
-## 🔬 Data Validation (Python)
+## Data Validation (Python)
 
-You can run data validation directly via npm:
+I built a separate data validation layer using Python and pandas:
 
 ```bash
 # Run the automated validation suite (pytest)
@@ -48,8 +48,6 @@ npm run validate:csv
 ```
 
 ### Manual Setup (Optional)
-
-If you prefer running directly with Python:
 
 ```bash
 cd data-validation
@@ -64,40 +62,50 @@ pytest test_validation.py -v
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-├── ui-tests/               # Playwright UI tests
-│   ├── pages/              # Page Object Model
-│   │   ├── BasePage.ts
-│   │   ├── LoginPage.ts
-│   │   ├── DashboardPage.ts
-│   │   └── CanvasPage.ts
+├── ui-tests/                   # Playwright UI tests
+│   ├── pages/                  # Page Object Model
+│   │   ├── BasePage.ts         # Abstract base class
+│   │   ├── LoginPage.ts        # Authentication via Auth0
+│   │   ├── DashboardPage.ts    # Project management
+│   │   └── CanvasPage.ts       # Transformation workflow
 │   └── tests/
-│       ├── auth.setup.ts   # Authentication setup
+│       ├── auth.setup.ts       # Shared authentication setup
 │       └── manual-transformation-flow.spec.ts
-├── api-tests/              # API / network-level tests
-│   ├── auth.spec.ts        # Authentication tests (positive + negative)
-│   ├── pipeline.spec.ts    # Pipeline status via network interception
-│   └── upload.spec.ts      # Upload validation via network interception
-├── data-validation/        # Python data validation scripts
-│   ├── validator.py        # Standalone validation script
-│   ├── test_validation.py  # Pytest test suite
-│   └── README.md
-├── tools/                  # Development utilities (not part of submission)
-│   └── network-sniffer.ts  # Used for API endpoint discovery
+│
+├── api-tests/                  # API / network-level tests
+│   ├── README.md               # API testing approach & discovered endpoints
+│   ├── auth.spec.ts            # Session & unauthorized access tests
+│   ├── pipeline.spec.ts        # Project list via network interception
+│   └── upload.spec.ts          # File upload validation
+│
+├── data-validation/            # Python data validation
+│   ├── README.md               # Validation approach
+│   ├── validator.py            # Standalone CLI validator
+│   ├── test_validation.py      # Pytest test suite
+│   └── requirements.txt
+│
+├── tools/                      # Development utilities
+│   └── network-sniffer.ts      # HAR capture for endpoint discovery
+│
 ├── assets/
-│   └── messy.csv           # Test input data (25 rows)
-├── test-results/
-│   ├── downloads/          # Output CSV files
-│   └── screenshots/        # Step-by-step screenshots
-├── test-strategy.md        # Test strategy & risk analysis
-└── ci-design.md            # CI/CD pipeline design
+│   └── messy.csv               # Test input (25 rows)
+│
+├── test-results/               # Generated output
+│   ├── downloads/              # Cleaned CSV files
+│   └── screenshots/            # Step-by-step captures
+│
+├── test-strategy.md            # Test strategy document
+├── ci-design.md                # CI/CD pipeline design
+├── playwright.config.ts        # Playwright configuration
+└── package.json                # NPM scripts & dependencies
 ```
 
 ---
 
-## 🔄 Transformation Pipeline
+## Transformation Pipeline
 
 | Step | Transformation    | Configuration            |
 | ---- | ----------------- | ------------------------ |
@@ -113,22 +121,26 @@ pytest test_validation.py -v
 
 ---
 
-## 🎬 Demo Video
+## Demo Video
 
 > **Link:** [Coming soon - will be added upon final submission]
 
 ---
 
-## 🚧 What I Chose NOT to Test (Yet)
+## What I Chose NOT to Automate
 
-1. **AI Pipeline Flow** – Chose Option B (Manual Transformation) for deterministic, reliable tests
-2. **Visual Regression** – Low ROI for a data-heavy application; functionality > appearance
-3. **Performance Testing** – Requires production-like infrastructure; functional correctness is higher priority
-4. **Exact AI Output Validation** – AI outputs are probabilistic; testing structure not exact values
+These are deliberate decisions based on automation ROI:
+
+| Area                    | Reason                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI Pipeline Flow**    | I chose Option B (Manual Transformation) to ensure deterministic, reliable tests. AI mode introduces non-determinism that requires different assertion strategies.  |
+| **Visual Regression**   | For a data transformation tool, functional correctness matters more than pixel-perfect UI. Visual tests have high maintenance cost with low bug-finding value here. |
+| **Performance Testing** | Requires production-equivalent infrastructure and baseline data. I documented this as a future enhancement in the test strategy.                                    |
+| **All 19 Transformers** | Diminishing returns. I covered the 4 highest-risk transformers and documented how to extend coverage.                                                               |
 
 ---
 
-## 📊 Test Reports
+## Test Reports
 
 ```bash
 npm run report
@@ -143,7 +155,7 @@ Reports include:
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ```bash
 cp .env.example .env
@@ -156,12 +168,14 @@ Required:
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-| Document                               | Description                   |
-| -------------------------------------- | ----------------------------- |
-| [test-strategy.md](./test-strategy.md) | Test strategy & risk analysis |
-| [ci-design.md](./ci-design.md)         | CI/CD pipeline design         |
+| Document                                                 | Description                   |
+| -------------------------------------------------------- | ----------------------------- |
+| [test-strategy.md](./test-strategy.md)                   | Test strategy & risk analysis |
+| [ci-design.md](./ci-design.md)                           | CI/CD pipeline design         |
+| [api-tests/README.md](./api-tests/README.md)             | API testing approach          |
+| [data-validation/README.md](./data-validation/README.md) | Data validation approach      |
 
 ---
 

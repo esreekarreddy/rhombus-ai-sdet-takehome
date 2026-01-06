@@ -54,7 +54,7 @@ import * as path from 'path';
     
     await page.getByText('Data Input', { exact: true }).first().click();
     
-    const MESSY_CSV = path.resolve(__dirname, '../ui-tests/assets/messy.csv');
+    const MESSY_CSV = path.resolve(__dirname, '../assets/messy.csv');
     // Wait for the "From Device" option
     await page.locator('text=From Device').first().click();
     

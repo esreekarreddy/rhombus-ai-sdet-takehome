@@ -14,7 +14,7 @@ import pandas as pd
 import os
 from pathlib import Path
 
-# Import our validator module
+# Import validator module
 from validator import (
     validate_text_case,
     validate_no_nulls,
